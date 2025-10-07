@@ -1,0 +1,11 @@
+version: '3.8'
+
+services:
+  myapp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: hentai_api:latest
+    container_name: hentai_api
+    ports:
+      - "127.0.0.1:5173:5173"
