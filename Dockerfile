@@ -30,7 +30,7 @@ COPY --from=builder /app/dist ./dist
 ENV NODE_ENV=production
 
 # Port yang digunakan (ubah sesuai app)
-EXPOSE 5173
+EXPOSE 3000
 
 # Jalankan hasil build
 CMD ["node", "dist/index.js"]
