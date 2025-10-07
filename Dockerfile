@@ -1,36 +1,47 @@
-# Stage 1: Build TypeScript
+# ---- builder ----
 FROM node:20 AS builder
 
-# Set working directory
-WORKDIR /app
+# set working dir
+WORKDIR /usr/src/app
 
-# Copy package files & install dependencies
-COPY package*.json ./
-RUN npm install
+# copy package manifest first (caching)
+COPY package.json package-lock.json* ./
 
-# Copy source code
-COPY . .
+# install all deps (including devDeps for tsc)
+RUN npm ci
 
-# Build TypeScript ke JavaScript (output ke /dist)
-RUN npx tsc
+# copy source + tsconfig
+COPY tsconfig.json ./
+COPY src ./src
 
-# Stage 2: Production image
-FROM node:22-alpine
+# build TypeScript
+RUN npm run build
 
-WORKDIR /app
+# ---- runtime ----
+FROM node:20-slim AS runtime
 
-# Copy only built files and dependencies
-COPY package*.json ./
-RUN npm install
+WORKDIR /usr/src/app
 
-# Copy hasil build dari stage builder
-COPY --from=builder /app/dist ./dist
+# set NODE_ENV
+ENV NODE_ENV=production
+ENV PORT=3000
 
-# Set environment variable
-# ENV NODE_ENV=production
+# copy only production dependencies
+COPY package.json package-lock.json* ./
+# install production deps only
+RUN npm ci --omit=dev
 
-# Port yang digunakan (ubah sesuai app)
+# copy built files
+COPY --from=builder /usr/src/app/dist ./dist
+
+# if you have public/static assets:
+# COPY --from=builder /usr/src/app/public ./public
+
+# non-root user (optional)
+RUN useradd --user-group --create-home --shell /bin/false appuser
+USER appuser
+
 EXPOSE 3000
 
-# Jalankan hasil build
+# adjust entry point if file different
 CMD ["node", "dist/index.js"]
